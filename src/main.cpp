@@ -1,4 +1,5 @@
 #include "main.h"
+#include "pros/misc.h"
 
 /**
  * A callback function for LLEMU's center button.
@@ -76,10 +77,11 @@ void opcontrol() {
 
 	while (true) {
 		// Arcade control scheme
+		float slow = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
 		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
-		left_mg.move(dir - turn);                      // Sets left motor voltage
-		right_mg.move(dir + turn);                     // Sets right motor voltage
+		left_mg.move((dir - turn) * slow);                      // Sets left motor voltage
+		right_mg.move((dir + turn) * slow);                     // Sets right motor voltage
 		pros::delay(20);							// Run for 20 ms then update
 	}
 }
