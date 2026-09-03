@@ -77,6 +77,7 @@ void opcontrol() {
 
 	while (true) {
 		// Arcade control scheme
+		int bruh = 0;
 		float slow = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
 		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
