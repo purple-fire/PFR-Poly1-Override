@@ -73,7 +73,8 @@ void opcontrol() {
 	Controller controller(E_CONTROLLER_MASTER);
 	MotorGroup left_mg({-11, -12, 13, -14});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
 	MotorGroup right_mg({17, 18, -19, 20});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
-
+	
+	int num1=5;
 
 	while (true) {
 		// Arcade control scheme
