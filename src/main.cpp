@@ -1,5 +1,6 @@
 #include "main.h"
 #include "pros/misc.h"
+#include "lemlib/api.hpp" // IWYU pragma: keep
 using namespace pros;
 
 /**
