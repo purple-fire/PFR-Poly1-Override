@@ -1,5 +1,6 @@
 #include "main.h"
 #include "pros/misc.h"
+using namespace pros;
 
 /**
  * A callback function for LLEMU's center button.
@@ -16,10 +17,9 @@ void on_center_button() {}
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
-
-	pros::lcd::register_btn1_cb(on_center_button);
+	lcd::initialize();
+	lcd::set_text(1, "Hello PROS User!");
+	lcd::register_btn1_cb(on_center_button);
 }
 
 /**
@@ -70,18 +70,19 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::Controller controller(pros::E_CONTROLLER_MASTER);
-	pros::MotorGroup left_mg({-11, -12, 13, -14});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
-	pros::MotorGroup right_mg({17, 18, -19, 20});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
-
+	Controller controller(E_CONTROLLER_MASTER);
+	MotorGroup left_mg({-11, -12, 13, -14});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
+	MotorGroup right_mg({17, 18, -19, 20});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
+	
+	int num1=5;
 
 	while (true) {
 		// Arcade control scheme
-		float slow = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
+		float slow = controller.get_digital(E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
 		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
 		left_mg.move((dir - turn) * slow);                      // Sets left motor voltage
 		right_mg.move((dir + turn) * slow);                     // Sets right motor voltage
-		pros::delay(20);							// Run for 20 ms then update
+		delay(20);							// Run for 20 ms then update
 	}
 }
