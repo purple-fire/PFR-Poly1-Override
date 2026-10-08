@@ -2,13 +2,16 @@
 #include "pros/abstract_motor.hpp"
 #include "pros/misc.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/motors.h"
 using namespace pros;
 
 Controller controller(E_CONTROLLER_MASTER);
-MotorGroup left_mg({-1, 2, -3, 4}, MotorGearset::blue);
-MotorGroup right_mg({6, -7, 8, -9}, MotorGearset::blue);
-MotorGroup intake_mg({11, -12}, MotorGearset::blue);
-MotorGroup slides_mg({13, 14}, MotorGearset::blue);
+MotorGroup right_mg({-1, 2, -3, 4}, MotorGearset::blue);
+MotorGroup left_mg({5, -6, 7, -8}, MotorGearset::blue);
+MotorGroup intake_mg({9, -10}, MotorGearset::blue);
+MotorGroup slides_mg({11, 20}, MotorGearset::blue);
+//slides_mg.set_brake_modes(E_MOTOR_BRAKE_HOLD);
+
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_mg, // left motor group
@@ -80,6 +83,8 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+            pros::lcd::print(3, "slide: %d", controller.get_digital(E_CONTROLLER_DIGITAL_L1) - controller.get_digital(E_CONTROLLER_DIGITAL_L2));
+            pros::lcd::print(4, "intake: %d", controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2));
             // delay to save resources
             pros::delay(20);
         }
@@ -98,18 +103,24 @@ void autonomous() {
 }
 
 void opcontrol() {
-
-
 	while (true) {
 		// Arcade control scheme
 		float slow = controller.get_digital(E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
-		int slide = controller.get_digital(E_CONTROLLER_DIGITAL_L1) - controller.get_digital(E_CONTROLLER_DIGITAL_L2);
-		int intake = controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2);
-		int dir = -controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+		int slide = (controller.get_digital(E_CONTROLLER_DIGITAL_L1) - controller.get_digital(E_CONTROLLER_DIGITAL_L2)) * 127;
+		int intake = (controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2)) * 127;
+		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
 		chassis.arcade(dir, turn);
 		left_mg.move((dir - turn) * slow);                      // Sets left motor voltage
 		right_mg.move((dir + turn) * slow);                     // Sets right motor voltage
+        slides_mg.move(slide);
+        if (!slide) {
+            slides_mg.brake();
+        }
+        intake_mg.move(intake);
+        if (!intake) {
+            intake_mg.brake();
+        }
 		delay(20);							// Run for 20 ms then update
 	}
 }
