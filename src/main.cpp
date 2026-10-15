@@ -1,7 +1,10 @@
 #include "main.h"
 #include "pros/abstract_motor.hpp"
+#include "pros/adi.h"
+#include "pros/adi.hpp"
 #include "pros/misc.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/motor_group.hpp"
 #include "pros/motors.h"
 using namespace pros;
 
@@ -10,8 +13,12 @@ MotorGroup right_mg({-1, 2, -3, 4}, MotorGearset::blue);
 MotorGroup left_mg({5, -6, 7, -8}, MotorGearset::blue);
 MotorGroup intake_mg({9, -10}, MotorGearset::blue);
 MotorGroup slides_mg({11, 20}, MotorGearset::blue);
-//slides_mg.set_brake_modes(E_MOTOR_BRAKE_HOLD);
 
+pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('B', false);
+pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('A', false);
+
+Motor slides1(11);
+Motor slides2(20);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_mg, // left motor group
@@ -76,6 +83,8 @@ lemlib::Chassis chassis(drivetrain, // drivetrain settings
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
+    slides1.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+    slides2.set_brake_mode(E_MOTOR_BRAKE_HOLD);
     // print position to brain screen
     pros::Task screen_task([&]() {
         while (true) {
@@ -103,6 +112,8 @@ void autonomous() {
 }
 
 void opcontrol() {
+    int clawPosState = 0; // 0 = down, 1 = up
+    int clawGrabState = 0; // 0 = open, 1 = closed
 	while (true) {
 		// Arcade control scheme
 		float slow = controller.get_digital(E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
@@ -110,17 +121,28 @@ void opcontrol() {
 		int intake = (controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2)) * 127;
 		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
+        int toggleClawPos = controller.get_digital_new_press(E_CONTROLLER_DIGITAL_X);
+        int toggleClawGrab = controller.get_digital_new_press(E_CONTROLLER_DIGITAL_Y);
+
 		chassis.arcade(dir, turn);
-		left_mg.move((dir - turn) * slow);                      // Sets left motor voltage
-		right_mg.move((dir + turn) * slow);                     // Sets right motor voltage
+		left_mg.move((dir - turn) * slow);
+		right_mg.move((dir + turn) * slow);
+
         slides_mg.move(slide);
         if (!slide) {
             slides_mg.brake();
         }
+
         intake_mg.move(intake);
         if (!intake) {
             intake_mg.brake();
         }
+
+        if  (toggleClawPos) { clawPosState = !clawPosState; }
+        clawPosPnm.set_value(clawPosState);
+        if  (toggleClawGrab) { clawGrabState = !clawGrabState; }
+        clawGrabPnm.set_value(clawGrabState);
+        
 		delay(20);							// Run for 20 ms then update
 	}
 }
