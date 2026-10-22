@@ -2,10 +2,12 @@
 #include "pros/abstract_motor.hpp"
 #include "pros/adi.h"
 #include "pros/adi.hpp"
+#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
+#include <cstdlib>
 using namespace pros;
 
 Controller controller(E_CONTROLLER_MASTER);
@@ -14,8 +16,8 @@ MotorGroup left_mg({5, -6, 7, -8}, MotorGearset::blue);
 MotorGroup intake_mg({9, -10}, MotorGearset::blue);
 MotorGroup slides_mg({11, 20}, MotorGearset::blue);
 
-pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('B', false);
-pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('A', false);
+pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('A', false);
+pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('B', false);
 
 Motor slides1(11);
 Motor slides2(20);
@@ -85,6 +87,7 @@ void initialize() {
     chassis.calibrate(); // calibrate sensors
     slides1.set_brake_mode(E_MOTOR_BRAKE_HOLD);
     slides2.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+
     // print position to brain screen
     pros::Task screen_task([&]() {
         while (true) {
@@ -92,10 +95,10 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            pros::lcd::print(3, "slide: %d", controller.get_digital(E_CONTROLLER_DIGITAL_L1) - controller.get_digital(E_CONTROLLER_DIGITAL_L2));
-            pros::lcd::print(4, "intake: %d", controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2));
+            pros::lcd::print(3, "slides: %f", slides_mg.get_position());
+            pros::lcd::print(4, "claw pos: %d", clawPosPnm.is_extended());
             // delay to save resources
-            pros::delay(20);
+            pros::delay(50);
         }
     });
 }
@@ -112,8 +115,8 @@ void autonomous() {
 }
 
 void opcontrol() {
-    int clawPosState = 0; // 0 = down, 1 = up
-    int clawGrabState = 0; // 0 = open, 1 = closed
+    int clawPosState = 0; // 0 = down, 1 = up, port A
+    int clawGrabState = 0; // 0 = open, 1 = closed, port B
 	while (true) {
 		// Arcade control scheme
 		float slow = controller.get_digital(E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
@@ -121,7 +124,6 @@ void opcontrol() {
 		int intake = (controller.get_digital(E_CONTROLLER_DIGITAL_R1) - controller.get_digital(E_CONTROLLER_DIGITAL_R2)) * 127;
 		int dir = controller.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int turn = -controller.get_analog(ANALOG_RIGHT_X); // Gets the turn left/right from right joystick
-        int toggleClawPos = controller.get_digital_new_press(E_CONTROLLER_DIGITAL_X);
         int toggleClawGrab = controller.get_digital_new_press(E_CONTROLLER_DIGITAL_Y);
 
 		chassis.arcade(dir, turn);
@@ -138,8 +140,9 @@ void opcontrol() {
             intake_mg.brake();
         }
 
-        if  (toggleClawPos) { clawPosState = !clawPosState; }
+        clawPosState = (slides_mg.get_position() > 800) || (slides_mg.get_position() < -800);
         clawPosPnm.set_value(clawPosState);
+
         if  (toggleClawGrab) { clawGrabState = !clawGrabState; }
         clawGrabPnm.set_value(clawGrabState);
         
