@@ -15,9 +15,12 @@ MotorGroup right_mg({-1, 2, -3, 4}, MotorGearset::blue);
 MotorGroup left_mg({5, -6, 7, -8}, MotorGearset::blue);
 MotorGroup intake_mg({9, -10}, MotorGearset::blue);
 MotorGroup slides_mg({11, 20}, MotorGearset::blue);
+bool clawPosState = false; // 0 = down, 1 = up, port A
+bool clawGrabState = false; // 0 = open, 1 = closed, port B
 
-pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('A', false);
-pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('B', false);
+pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('G', false);
+pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('H', false);
+pros::adi::DigitalOut solenoid = pros::adi::DigitalOut('C');
 
 Motor slides1(11);
 Motor slides2(20);
@@ -96,7 +99,7 @@ void initialize() {
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
             pros::lcd::print(3, "slides: %f", slides_mg.get_position());
-            pros::lcd::print(4, "claw pos: %d", clawPosPnm.is_extended());
+            pros::lcd::print(4, "claw pos: %d", clawPosState);
             // delay to save resources
             pros::delay(50);
         }
@@ -115,8 +118,6 @@ void autonomous() {
 }
 
 void opcontrol() {
-    int clawPosState = 0; // 0 = down, 1 = up, port A
-    int clawGrabState = 0; // 0 = open, 1 = closed, port B
 	while (true) {
 		// Arcade control scheme
 		float slow = controller.get_digital(E_CONTROLLER_DIGITAL_A) ? 1.0 : 0.5;
@@ -140,7 +141,7 @@ void opcontrol() {
             intake_mg.brake();
         }
 
-        clawPosState = (slides_mg.get_position() > 800) || (slides_mg.get_position() < -800);
+        clawPosState = (slides_mg.get_position() > 700.0) || (slides_mg.get_position() < -700.0) || controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
         clawPosPnm.set_value(clawPosState);
 
         if  (toggleClawGrab) { clawGrabState = !clawGrabState; }
