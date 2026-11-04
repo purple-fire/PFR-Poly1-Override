@@ -20,7 +20,9 @@ bool clawGrabState = false; // 0 = open, 1 = closed, port B
 
 pros::adi::Pneumatics clawPosPnm = pros::adi::Pneumatics('G', false);
 pros::adi::Pneumatics clawGrabPnm = pros::adi::Pneumatics('H', false);
-pros::adi::DigitalOut solenoid = pros::adi::DigitalOut('C');
+pros::adi::DigitalOut solenoid1 = pros::adi::DigitalOut('B');
+pros::adi::DigitalOut solenoid2 = pros::adi::DigitalOut('C');
+
 
 Motor slides1(11);
 Motor slides2(20);
@@ -90,6 +92,8 @@ void initialize() {
     chassis.calibrate(); // calibrate sensors
     slides1.set_brake_mode(E_MOTOR_BRAKE_HOLD);
     slides2.set_brake_mode(E_MOTOR_BRAKE_HOLD);
+    solenoid1.set_value(true);
+    solenoid2.set_value(true);
 
     // print position to brain screen
     pros::Task screen_task([&]() {
@@ -141,10 +145,10 @@ void opcontrol() {
             intake_mg.brake();
         }
 
-        clawPosState = (slides_mg.get_position() > 700.0) || (slides_mg.get_position() < -700.0) || controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+        clawPosState = (slides_mg.get_position() > 450.0) || (slides_mg.get_position() < -450.0) || controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
         clawPosPnm.set_value(clawPosState);
 
-        if  (toggleClawGrab) { clawGrabState = !clawGrabState; }
+        if (toggleClawGrab) { clawGrabState = !clawGrabState; }
         clawGrabPnm.set_value(clawGrabState);
         
 		delay(20);							// Run for 20 ms then update
