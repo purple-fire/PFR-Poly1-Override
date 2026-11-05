@@ -7,6 +7,7 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
+#include <cmath>
 #include <cstdlib>
 using namespace pros;
 
@@ -118,7 +119,6 @@ void competition_initialize() {}
 
 void autonomous() {
 
-
 }
 
 void opcontrol() {
@@ -134,7 +134,7 @@ void opcontrol() {
 		chassis.arcade(dir, turn);
 		left_mg.move((dir - turn) * slow);
 		right_mg.move((dir + turn) * slow);
-
+        
         slides_mg.move(slide);
         if (!slide) {
             slides_mg.brake();
@@ -145,12 +145,12 @@ void opcontrol() {
             intake_mg.brake();
         }
 
-        clawPosState = (slides_mg.get_position() > 450.0) || (slides_mg.get_position() < -450.0) || controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+        clawPosState = fabs(slides_mg.get_position()) > 450.0 || controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
         clawPosPnm.set_value(clawPosState);
 
         if (toggleClawGrab) { clawGrabState = !clawGrabState; }
         clawGrabPnm.set_value(clawGrabState);
         
-		delay(20);							// Run for 20 ms then update
+		delay(20);
 	}
 }
